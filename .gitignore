@@ -1,0 +1,25 @@
+node_modules/
+.expo/
+dist/
+.env
+.env.local
+.env.*
+!.env.example
+.codex/
+.agents/
+*.jks
+*.p12
+*.pem
+# The standard Android debug.keystore is included for reproducible preview builds.
+# Never commit a production signing keystore.
+.tools/
+qa/
+*.log
+android/.gradle/
+android/.cxx/
+android/app/.cxx/
+android/app/build/
+android/build/
+android/local.properties
+releases/*.apk
+releases/*.aab

@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "Sukoon", "slug": "sukoon", "scheme": "sukoon", "version": "1.0.0",
+    "orientation": "portrait", "userInterfaceStyle": "automatic", "icon": "./assets/icon.png",
+    "splash": {"image": "./assets/icon.png", "resizeMode": "contain", "backgroundColor": "#0F6E56"},
+    "ios": {"supportsTablet": true, "bundleIdentifier": "in.sukoon.health"},
+    "android": {
+      "package": "in.sukoon.health", "versionCode": 1, "allowBackup": false,
+      "adaptiveIcon": {"foregroundImage": "./assets/adaptive-icon.png", "backgroundColor": "#0F6E56"},
+      "permissions": ["android.permission.CAMERA", "android.permission.ACCESS_COARSE_LOCATION"],
+      "blockedPermissions": ["android.permission.RECORD_AUDIO", "android.permission.READ_EXTERNAL_STORAGE", "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.SYSTEM_ALERT_WINDOW"]
+    },
+    "web": {"bundler": "metro", "name": "Sukoon · A little care. A lot of calm."},
+    "plugins": ["expo-secure-store", ["expo-image-picker", {"photosPermission": "Choose medical records to add to your health history.", "cameraPermission": "Scan your medical records.", "microphonePermission": false}], ["expo-location", {"locationWhenInUsePermission": "Use your approximate area for weather context and nearby care."}]]
+  }
+}

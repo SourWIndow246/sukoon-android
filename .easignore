@@ -1,0 +1,12 @@
+node_modules/
+.git/
+.expo/
+.tools/
+qa/
+dist/
+.env
+.env.local
+server/
+supabase/
+tests/
+*.log

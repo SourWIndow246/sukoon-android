@@ -1,0 +1,8 @@
+import {useTheme} from './theme';
+import React from 'react';
+import {View,Text,Pressable} from 'react-native';
+import {Plus} from 'lucide-react-native';
+import {Avatar} from './components';
+import {Profile} from './types';
+import {familyLayers} from './policy.mjs';
+export function FamilyTree({profiles,onEdit,onAdd}:{profiles:Profile[];onEdit:(p:Profile)=>void;onAdd:()=>void}){const {C,s}=useTheme();return <View style={{alignItems:'center',paddingVertical:20,width:'100%'}}>{familyLayers(profiles).map((layer:Profile[],i:number)=><React.Fragment key={i}>{i>0&&<><View style={{width:1,height:24,backgroundColor:C.borderStrong}}/><View style={{height:1,width:'60%',backgroundColor:C.borderStrong,marginBottom:22}}/></>}<Text style={[s.eyebrow,{fontSize:9,marginBottom:15,color:C.muted}]}>Generation {i+1}</Text><View style={[s.row,{flexWrap:'wrap',justifyContent:'center',gap:25}]}>{layer.map(p=><Pressable key={p.id} accessibilityRole="button" accessibilityLabel={`Edit ${p.name} family connections`} onPress={()=>onEdit(p)} style={{alignItems:'center',gap:9,width:110}}><Avatar index={p.avatar} size={65}/><Text style={s.label}>{p.name}</Text><Text style={[s.tiny,{textAlign:'center',fontSize:10}]}>{p.parentIds.map(id=>profiles.find(x=>x.id===id)?.name).filter(Boolean).join(' + ')||p.relation}</Text></Pressable>)}</View></React.Fragment>)}<View style={{width:1,height:25,backgroundColor:C.borderStrong,marginTop:20}}/><Pressable accessibilityRole="button" accessibilityLabel="Add the next generation" onPress={onAdd} style={[s.row,{padding:14,borderWidth:1,borderStyle:'dashed',borderColor:C.borderStrong,borderRadius:30,backgroundColor:C.subtle}]}><Plus size={16} color={C.green}/><Text style={s.link}>The next generation</Text></Pressable></View>}

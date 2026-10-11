@@ -1,0 +1,3 @@
+allowBuilds:
+  tesseract.js: false
+nodeLinker: hoisted
