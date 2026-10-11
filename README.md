@@ -4,7 +4,7 @@ Sukoon is a React Native / Expo Android app, not a WebView wrapper. Native scree
 
 ## Install the Android preview
 
-Download [Sukoon-preview.apk from the latest GitHub release](https://github.com/SourWIndow246/sukoon-android/releases/latest). Access requires permission to this private repository.
+Download [Sukoon-preview.apk from the Android preview release](https://github.com/SourWIndow246/sukoon-android/releases/tag/v1.0.0-preview.1). Access requires permission to this private repository.
 
 The verified preview is available at `releases/Sukoon-preview.apk` (about 31 MB), for Android phones with an **arm64-v8a** processor, Android 7 or newer. Transfer it to the phone, open it, and approve installation from your chosen file manager. This preview is signed with the standard development key and is **not a Play Store release**. No development server is needed for the APK.
 
