@@ -4,15 +4,15 @@ const cache=new Map();
 const cooldowns=new Map();
 const keyId=key=>createHash('sha256').update(key).digest('hex');
 const retryable=new Set([404,429,500,502,503,504]);
-// Product preference, not a claim of clinical accuracy. Full models precede Lite;
-// within a generation, Pro precedes Flash. Specialized models cannot enter chat.
+// Prefer fast conversational models when the configured model is unavailable.
+// This ranking is a latency preference, not a claim of clinical accuracy.
 export function rankModels(models,preferred) {
   return [...new Set(models.filter(m=>m.supportedGenerationMethods?.includes('generateContent'))
     .map(m=>m.name?.replace(/^models\//,''))
     .filter(name=>/^gemini-\d+(?:\.\d+)?-(?:pro|flash)(?:-lite)?(?:-preview(?:-\d{2}-\d{2})?|-\d{3})?$/.test(name??'')))]
     .sort((a,b)=>{
       if(a===preferred)return -1;if(b===preferred)return 1;
-      const score=name=>{const [,version,tier]=name.match(/^gemini-([\d.]+)-(pro|flash)/);return [name.includes('-lite')?0:1,Number(version),tier==='pro'?1:0,name.includes('preview')?0:1];};
+      const score=name=>{const [,version,tier]=name.match(/^gemini-([\d.]+)-(pro|flash)/);return [name.includes('-lite')?2:tier==='flash'?1:0,name.includes('preview')?0:1,Number(version)];};
       const left=score(a),right=score(b);
       for(let i=0;i<left.length;i++)if(left[i]!==right[i])return right[i]-left[i];
       return a.localeCompare(b);

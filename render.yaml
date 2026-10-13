@@ -18,7 +18,7 @@ services:
       - key: AI_PROVIDER
         value: gemini
       - key: GEMINI_MODEL
-        value: gemini-3.8-flash
+        value: gemini-3.1-flash-lite
       - key: ALLOWED_ORIGIN
         value: http://localhost:8081
       - key: SUPABASE_URL

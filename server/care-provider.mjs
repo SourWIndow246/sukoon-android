@@ -9,7 +9,7 @@ export function aiConfig(env=process.env) {
   const provider=(env.AI_PROVIDER||(env.GEMINI_API_KEY?'gemini':'anthropic')).trim().toLowerCase();
   if(!['gemini','anthropic'].includes(provider))throw failure(503,'Set AI_PROVIDER to gemini or anthropic on the server.');
   const apiKey=(provider==='gemini'?env.GEMINI_API_KEY:env.ANTHROPIC_API_KEY)?.trim();
-  const model=(provider==='gemini'?env.GEMINI_MODEL||'gemini-3.8-flash':env.ANTHROPIC_MODEL||'claude-sonnet-4-6').trim();
+  const model=(provider==='gemini'?env.GEMINI_MODEL||'gemini-3.1-flash-lite':env.ANTHROPIC_MODEL||'claude-sonnet-4-6').trim();
   if(!/^[a-zA-Z0-9._-]+$/.test(model))throw failure(503,'The server model setting is invalid.');
   return {provider,apiKey,model};
 }

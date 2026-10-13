@@ -21,3 +21,5 @@ Put the actual HTTPS service origin in EXPO_PUBLIC_API_URL locally and rebuild t
 Free Render services sleep after 15 minutes without inbound traffic; the next request may wait for startup. This is a testing deployment. OCR is resource intensive, and file cleanup queued during sleep runs after the server wakes. Choose paid always-on hosting separately if needed.
 
 References: https://render.com/docs/deploy-node-express-app, https://render.com/docs/free, https://render.com/docs/blueprint-spec
+
+The preferred model is now `gemini-3.1-flash-lite`, selected for faster replies. The app prompt, structured response schema, language handling and minimum-question/emergency validation remain unchanged. Fallbacks prefer Flash-Lite, then Flash, then Pro; stable models precede preview models in each group. In one synthetic English follow-up comparison on October 13, 2026, 3.1 Flash-Lite completed in 12.9s and 3.5 Flash-Lite in 19.1s; 3.8 Flash and 2.5 Flash-Lite failed to finish within the request timeout. These are limited measurements, not a latency guarantee or clinical validation.
