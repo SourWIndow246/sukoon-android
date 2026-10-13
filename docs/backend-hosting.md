@@ -1,5 +1,7 @@
 # Host the Sukoon API on Render
 
+The testing backend is deployed at https://sukoon-api-ma2b.onrender.com on the free Singapore instance. Render service: `srv-db71g50m7kps73bncr3g`, branch: `codex/live-backend`. The first deployment of `8a1a0ad` passed the live `/health` check and returned 401 for unauthenticated `/account` requests on October 13, 2026. Secrets are stored in Render environment settings; local `.env` points the next Android build to this HTTPS origin.
+
 The app connects directly to Supabase for email login and uses this Node service for authenticated profile, chat and record operations. Gemini and the Supabase server key belong in Render environment settings.
 
 Use the repository's render.yaml blueprint, selecting the deployment branch. It creates one free Node web service in Singapore, installs only server dependencies, and checks /health. Automatic deploys are disabled so a future push will not silently replace the running API.

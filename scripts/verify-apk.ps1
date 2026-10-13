@@ -29,9 +29,13 @@ try {
  if ($names -match '(^|/)\.env($|\.)') { throw 'An environment file was unexpectedly bundled' }
  # Check the actual configured server secrets without printing their values.
  $secretValues = @()
+ $publicValues = @{}
  $environmentPath = Join-Path $root '.env'
  if (Test-Path -LiteralPath $environmentPath) {
   foreach ($line in [IO.File]::ReadAllLines($environmentPath)) {
+   if ($line -match '^\s*(EXPO_PUBLIC_API_URL|EXPO_PUBLIC_SUPABASE_URL|EXPO_PUBLIC_SUPABASE_ANON_KEY)\s*=\s*(.+?)\s*$') {
+    $publicValues[$Matches[1]] = $Matches[2].Trim().Trim('"').Trim("'")
+   }
    if ($line -match '^\s*(GEMINI_API_KEY|ANTHROPIC_API_KEY|SUPABASE_SERVICE_ROLE_KEY)\s*=\s*(.+?)\s*$') {
     $secretValue = $Matches[2].Trim().Trim('"').Trim("'")
     if ($secretValue.Length -ge 12) { $secretValues += $secretValue }
@@ -42,10 +46,16 @@ try {
   $stream = $entry.Open(); $memory = [IO.MemoryStream]::new()
   try {
    $stream.CopyTo($memory); $assetText = [Text.Encoding]::UTF8.GetString($memory.ToArray())
+   if ($entry.FullName -eq 'assets/index.android.bundle') {
+    foreach ($publicName in @('EXPO_PUBLIC_API_URL', 'EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY')) {
+     if (-not $publicValues[$publicName] -or -not $assetText.Contains($publicValues[$publicName])) { throw "Configured public setting is absent from the APK bundle: $publicName" }
+    }
+   }
    foreach ($secretValue in $secretValues) { if ($assetText.Contains($secretValue)) { throw 'A server secret was found in the APK assets' } }
   } finally { $stream.Dispose(); $memory.Dispose() }
  }
  Write-Output 'Verified configured server secrets are absent from APK assets.'
+ Write-Output 'Verified configured API URL and public Supabase settings are embedded in the app bundle.'
  Write-Output 'Verified native speech recognition, speech playback, microphone permission, and absence of environment files.'
 } finally { $archive.Dispose() }
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $apk).Hash.ToLowerInvariant()
