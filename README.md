@@ -21,7 +21,7 @@ The preview starts with an explicitly labelled fictional family. Profiles, text 
 - Bloodline ancestry traversal across generations and both biological parent branches. This is family history, not genetic testing or a disease prediction.
 - Native PDF export and Android share sheet; export remains available for all records even on the free plan.
 - Opt-in approximate location and current weather. Old weather is excluded by the backend after two hours.
-- Supabase SMS OTP wiring, private Storage, Postgres migrations and row-level access policies.
+- Supabase email-code login, private Storage, Postgres migrations and row-level access policies.
 - Express backend: authenticated profiles/records, Claude tool-validated triage, minimum question gate with urgent override, timestamped context, database session locks, closed-chat enforcement, referral logs, subscription webhook idempotency.
 
 ## Run / build
@@ -47,7 +47,7 @@ Alternative: `eas.json` has `preview` (APK) and `production` (AAB) profiles. Usi
 
 ## Enable real services
 
-1. Create a Supabase project and apply `supabase/migrations/001_sukoon.sql` in the SQL editor. Enable Phone Auth and configure an SMS provider. The `medical-records` bucket is private and limited to 10 MB files.
+1. Create a Supabase project and apply `supabase/migrations/001_sukoon.sql`, then `002_remove_family_member.sql`, in the SQL editor. Enable Email Auth and configure code emails using [the email setup guide](docs/supabase-email-setup.md). The `medical-records` bucket is private and limited to 10 MB files.
 2. Copy `.env.example` to `.env`. Fill in the public Supabase URL / anon key, the backend URL, and **server-only** Supabase service-role and Anthropic keys. Never expose service-role or AI keys with an `EXPO_PUBLIC_` prefix.
 3. Run `pnpm server`, or deploy the Express service using Node 22+ to Railway / Render. Use HTTPS for a physical Android device; `localhost` on a phone refers to that phone. No real credentials are provided in this repository.
 4. Configure `ANTHROPIC_MODEL` to an available supported model for your account. The requested `claude-sonnet-4-20250514` has been retired; the code uses the configurable `claude-sonnet-4-6` default.
@@ -55,6 +55,32 @@ Alternative: `eas.json` has `preview` (APK) and `production` (AAB) profiles. Usi
 6. Set RevenueCat's webhook authorization value to `REVENUECAT_WEBHOOK_SECRET`, the entitlement to `sukoon_plus`, and its app user ID to the Supabase user UUID. The webhook is implemented, but **native purchase / restore UI is wired; RevenueCat keys, offerings and Play Billing products still need your account configuration**. The preview toggle never charges anyone and cannot enable live subscriptions.
 
 ## Important limits before a real medical launch
+
+### Chat language and voice
+
+Each user message selects English, Hindi (Devanagari), or Hinglish (Roman script); numbers and ambiguous short answers keep the previous language. The saved preference is only the initial fallback. The eight fixed questions, answer chips, demo summaries and emergency replies are translated; the live model is instructed to match the latest message in all output fields and explain illness names in everyday words. The local detector uses script and common Hindi words, so uncommon Roman spellings may need improvement.
+
+One **Start voice chat** button enables alternating listening and spoken replies. Final speech transcripts use the same chat endpoint and medical guards as typed messages. Audio is not saved by Sukoon. The operating system or browser speech service may process audio online; the button explains this before use. Typing stays available when voice is off. Stopping, changing chats, navigating away or backgrounding the app cancels recognition and playback. A completed summary is read aloud, including next steps and warning signs, then listening stops.
+
+Web voice requires a browser with speech recognition and speech synthesis, microphone permission, and HTTPS or localhost. Hindi/Hinglish playback requires an installed Hindi voice. Recognition starts in the current chat language (English-India or Hindi-India); browser/device recognition is not universal automatic multilingual detection. It may mishear mixed speech, so the transcript stays visible. Unsupported browsers, permission denial, silence, missing voices and network errors return to typing with a message. Native speech uses `expo-speech-recognition` for SDK 54 and `expo-speech`; **rebuild the Android app** to include the new native modules and microphone permission. Existing APKs do not gain these modules through a web refresh. Physical microphone, mixed-language recognition and speaker testing are still required on target devices.
+
+### Gemini integration
+
+The backend supports Gemini and Anthropic through the shared provider adapter in `server/care-provider.mjs`. The local `.env` file is ignored by Git. Set `AI_PROVIDER=gemini`, fill `GEMINI_API_KEY` locally, and optionally change `GEMINI_MODEL` (preferred model, default: `gemini-3.8-flash`). Then restart `pnpm server`. Never put the key in `EXPO_PUBLIC_*` or the mobile/browser bundle. Set `AI_PROVIDER=anthropic` to deliberately select the previous provider; failed Gemini requests never silently switch providers.
+
+If the preferred Gemini model returns unavailable/not-found, rate-limit or temporary server errors, `server/gemini-models.mjs` discovers models through Google's API and retries suitable text models. Full models rank ahead of Lite; newer generations rank ahead of older ones, with Pro ahead of Flash in the same generation. This is an explicit product preference, not a clinical-accuracy benchmark. Image, audio, transcription, robotics and other specialized models are excluded. Discovery is cached for five minutes; failing models get a short cooldown. At most five generation attempts share the original 75-second timeout. Authentication/schema errors, safety blocks and invalid or truncated generated replies do not trigger model fallback. All attempts use the same instructions, context and output validation.
+
+Live chat also needs the existing Supabase URL, service key and public client settings described in **Enable real services**. A Gemini key alone does not switch the local sample app into live mode. The `/health` endpoint reports storage configuration, AI configuration and provider without exposing credentials. Both providers receive the same language/plain-language rules, history and symptom references, and use the same validation, eight-question gate and shortlist limit. Blocked, truncated, malformed and failed responses cannot produce a completed verdict. Speech transcripts use this same endpoint. Mocked contract tests cover both providers; live end-to-end verification still requires your credentials and configured Supabase project.
+
+Provider documentation: [Gemini key handling](https://ai.google.dev/gemini-api/docs/api-key), [Gemini structured output](https://ai.google.dev/gemini-api/docs/structured-output), [speech recognition support](https://github.com/jamsch/expo-speech-recognition), [Expo speech](https://docs.expo.dev/versions/v54.0.0/sdk/speech/).
+
+### Symptom reference search and interview
+
+The live assessment retrieves matching entries from `server/clinical-search.mjs`, a small local NHS-linked index covering selected respiratory, headache, abdominal and urinary presentations. The model receives all matching references, patient history and the transcript. This is keyword retrieval, not a professional diagnostic search engine, a probability model, or an integration with a licensed practitioner CDSS. The app does not fetch these pages during each assessment. References were checked on 13 October 2026 and need ongoing editorial review.
+
+Eight follow-up answers are required before a non-emergency result. The server supplies eight history-domain questions; the model can continue with discriminating questions afterwards. Current warning signs can trigger immediate escalation at any turn. Explicit local denials no longer automatically trigger emergency keywords, and merely mentioning a disease such as a relative's stroke does not itself activate the keyword backstop. Contextual interpretation still relies on the model; multilingual negation coverage is incomplete.
+
+Final output allows at most eight distinct tentative explanations. A shorter list does not mean all other diseases have been excluded. General reference links appear in the result and doctor export; they do not verify an individual diagnosis. Urgency uses current warning signs, severity, functional impairment and uncertainty, **never average lethality**. A low average could conceal a time-critical condition. No professional-equivalent accuracy is claimed. Establishing that would require an appropriate clinical knowledge provider and independent clinician-led validation on representative cases, including emergency sensitivity and over-triage rates. The demo remains explicitly non-clinical.
 
 This is a functional engineering MVP, **not clinically validated medical software**. Its disclaimer is not a substitute for medical, regulatory, security and privacy review.
 
@@ -72,3 +98,9 @@ This is a functional engineering MVP, **not clinically validated medical softwar
 `pnpm test` checks profile quotas, emergency English/Hinglish handling, complete normal question flow, green/yellow/red result closure, refusal of premature non-urgent model results, and inheritance through both parents across three generations. `pnpm typecheck` checks the app source. Native bundle and APK verification are recorded in `VERIFICATION.md`.
 
 Primary references: [Expo APK builds](https://docs.expo.dev/build-reference/apk/), [Anthropic model deprecations](https://platform.claude.com/docs/en/about-claude/model-deprecations), [NHS emergency warning signs](https://www.nhs.uk/conditions/heart-attack/), [India Emergency Response Support System](https://112.gov.in/).
+
+### Family removal and mobile voice update (1.0.2)
+
+Long-press a family card for Edit details or Remove member. Removal confirms before deleting the member, their chats/records and family links. Before using this with live accounts, apply `supabase/migrations/002_remove_family_member.sql` after migration 001. The backend queues private-file deletion and retries interrupted cleanup every ten minutes and after restart.
+
+The microphone beside Send opens a voice window. Grant microphone permission when prompted. Android also needs an available speech-recognition service and a speech voice for the conversation language. Actual device speech support varies; permission and retry controls remain in the popup. Normal assessments wait for eight follow-up answers; an unsupported model red verdict cannot bypass that gate.

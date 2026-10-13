@@ -1,0 +1,21 @@
+# Host the Sukoon API on Render
+
+The app connects directly to Supabase for email login and uses this Node service for authenticated profile, chat and record operations. Gemini and the Supabase server key belong in Render environment settings.
+
+Use the repository's render.yaml blueprint, selecting the deployment branch. It creates one free Node web service in Singapore, installs only server dependencies, and checks /health. Automatic deploys are disabled so a future push will not silently replace the running API.
+
+Enter these values from the existing local .env into Render's secret environment fields:
+
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- GEMINI_API_KEY
+
+The blueprint sets Gemini as the provider, keeps model fallback enabled, and configures one trusted proxy hop for rate limiting. No database is created: the existing Supabase project is used. The existing migrations must already be applied.
+
+After Render reports Live, check https://YOUR-SERVICE.onrender.com/health. It should return status ok, configured true and ai true. This checks service configuration, not email delivery or clinical accuracy. Protected /account requests without a user token should return 401.
+
+Put the actual HTTPS service origin in EXPO_PUBLIC_API_URL locally and rebuild the APK. Supabase public client settings must also be present. Server-only keys must remain absent from APK assets.
+
+Free Render services sleep after 15 minutes without inbound traffic; the next request may wait for startup. This is a testing deployment. OCR is resource intensive, and file cleanup queued during sleep runs after the server wakes. Choose paid always-on hosting separately if needed.
+
+References: https://render.com/docs/deploy-node-express-app, https://render.com/docs/free, https://render.com/docs/blueprint-spec

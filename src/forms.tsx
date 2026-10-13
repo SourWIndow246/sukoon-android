@@ -1,6 +1,6 @@
 import {useTheme} from './theme';
-import React, { useState } from 'react';
-import { View, Text, Pressable, Platform, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, Pressable, Platform, ActivityIndicator, TextInput } from 'react-native';
 import { Plus, Upload, Camera, FileText, Check, ChevronLeft, ShieldCheck } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -9,6 +9,7 @@ import { Profile, RecordItem } from './types';
 import { uid } from './data';
 import { isLive, request, uploadFile, supabase } from './api';
 import { extractLocalText } from './localOcr';
+import { emailAddress, sendEmailCode, verifyEmailCode } from './emailAuth.mjs';
 const split=(v:string)=>v.split(',').map(x=>x.trim()).filter(Boolean);
 export function ProfileForm({initial,onSave,onClose,profiles,premium}:{initial?:Profile;onSave:(p:Profile)=>Promise<void>;onClose:()=>void;profiles:Profile[];premium:boolean}){const {C,s}=useTheme();
  const [step,setStep]=useState(0);const [busy,setBusy]=useState(false);const [error,setError]=useState('');
@@ -33,4 +34,28 @@ export function RecordForm({profile,chatId,initial,onSave,onClose}:{profile:Prof
  async function save(){setError('');if(!r.name.trim()){setError('Please add a title for this record.');return;}if(!/^\d{4}-\d{2}-\d{2}$/.test(r.date)||Number.isNaN(Date.parse(r.date))){setError('Please use a valid date in YYYY-MM-DD format.');return;}setBusy(true);try{let storagePath=r.storagePath;if(file&&isLive&&!storagePath)storagePath=await uploadFile(profile.id,file.uri,file.name,file.mime);await onSave({...r,storagePath});}catch(e:any){setError(e.message)}finally{setBusy(false)}}
  return <Sheet visible title={chatId?'How did the doctor visit go?':initial?'Edit medical record':'Add a medical record'} subtitle={`${profile.name}’s health folder · Your doctor’s advice helps future assessments.`} onClose={onClose}><View style={[s.row,{marginBottom:16}]}><Button label="Upload file" secondary onPress={()=>pick()} disabled={busy} icon={<Upload size={18} color={C.green}/>} style={{flex:1}}/><Button label="Scan" secondary onPress={()=>pick(true)} disabled={busy} icon={<Camera size={18} color={C.green}/>}/></View>{!!status&&<Text style={[s.tiny,{marginBottom:15}]}>{status}</Text>}{!isLive&&<Text style={[s.tiny,{marginBottom:20,color:C.amber}]}>Demo: only record details are saved locally. Original files are not retained. Use sample documents.</Text>}<Field label="Record title" value={r.name} onChange={v=>edit('name',v)} placeholder="e.g. Follow-up with Dr. Rao"/><Field label="Visit date (YYYY-MM-DD)" value={r.date} onChange={v=>edit('date',v)}/><Field label="Doctor’s name" value={r.doctor} onChange={v=>edit('doctor',v)} placeholder="Dr. …"/><Field label="Doctor’s finding (as written on the report)" value={r.diagnosis} onChange={v=>edit('diagnosis',v)} placeholder="Copy from the medical report"/><Field label="Prescribed medicines" value={r.medications} onChange={v=>edit('medications',v)} placeholder="Name and instructions from your doctor"/><Field label="Extracted text / additional notes" value={r.notes} onChange={v=>edit('notes',v)} multiline placeholder="What changed? What did your doctor advise?"/>{!!error&&<Text accessibilityRole="alert" style={{color:C.red,marginBottom:15}}>{error}</Text>}<Button label={busy?'Working…':'Save to health history'} onPress={save} disabled={busy} icon={<Check size={18} color="white"/>}/></Sheet>
 }
-export function Login({onClose,onDone}:{onClose:()=>void;onDone:()=>Promise<void>}){const {C,s}=useTheme();const [phone,setPhone]=useState('');const [otp,setOtp]=useState('');const [sent,setSent]=useState(false);const [busy,setBusy]=useState(false);const [error,setError]=useState('');async function submit(){setError('');if(!supabase){setError('Live sign-in needs Supabase configuration. Close this panel to explore the sample family.');return;}if(!/^[6-9]\d{9}$/.test(phone)){setError('Enter a valid 10-digit Indian mobile number.');return;}setBusy(true);try{const result=sent?await supabase.auth.verifyOtp({phone:`+91${phone}`,token:otp,type:'sms'}):await supabase.auth.signInWithOtp({phone:`+91${phone}`});if(result.error)throw result.error;if(sent)await onDone();else setSent(true);}catch(e:any){setError(e.message)}finally{setBusy(false)}}return <Sheet visible title="Your family. Your Sukoon." subtitle="Sign in with your mobile number to keep your family’s health records together." onClose={onClose}><View style={[s.row,{marginBottom:24}]}><ShieldCheck size={20} color={C.green}/><Text style={s.body}>A private space for your family</Text></View><Field label="Mobile number (+91)" value={phone} onChange={setPhone} keyboard="phone-pad" placeholder="98765 43210"/>{sent&&<Field label="One-time password" value={otp} onChange={setOtp} keyboard="number-pad" placeholder="Enter the SMS code"/>}{!!error&&<Text accessibilityRole="alert" style={{color:C.red,marginBottom:18}}>{error}</Text>}<Button label={busy?'Please wait…':sent?'Verify & continue':'Send OTP'} disabled={busy} onPress={submit}/><Text style={[s.tiny,{marginTop:20}]}>Adults manage the account. Add a child’s information only if you are their parent or authorised guardian.</Text></Sheet>}
+export function Login({onClose,onDone}:{onClose:()=>void;onDone:()=>Promise<void>}) {
+ const {C,s}=useTheme();const [email,setEmail]=useState('');const [sentTo,setSentTo]=useState('');const [otp,setOtp]=useState('');
+ const [busy,setBusy]=useState(false);const working=useRef(false);const [verified,setVerified]=useState(false);const [error,setError]=useState('');const [remaining,setRemaining]=useState(0);
+ useEffect(()=>{if(!remaining)return;const timer=setTimeout(()=>setRemaining(value=>Math.max(0,value-1)),1000);return()=>clearTimeout(timer)},[remaining]);
+ async function submit(resend=false) {
+  if(working.current)return;setError('');if(!supabase){setError('Live sign-in needs Supabase configuration. Close this panel to explore the sample family.');return;}
+  working.current=true;setBusy(true);
+  try {
+   if(verified&&!resend){await onDone();return;}
+   if(!sentTo||resend){const address=emailAddress(sentTo||email);await sendEmailCode(supabase.auth,address);setSentTo(address);setOtp('');setRemaining(60);return;}
+   await verifyEmailCode(supabase.auth,sentTo,otp);setVerified(true);await onDone();
+  }catch(e:any){setError(e.message??'Could not sign in. Please try again.');}finally{working.current=false;setBusy(false)}
+ }
+ return <Sheet visible title="Your family. Your Sukoon." subtitle="Sign in with your email to keep your family’s health records together." onClose={()=>{if(!busy)onClose()}}>
+ <View style={[s.row,{marginBottom:24}]}><ShieldCheck size={20} color={C.green}/><Text style={s.body}>A private space for your family</Text></View>
+ {!sentTo?<View style={{gap:8,marginBottom:17}}><Text style={s.label}>Email address</Text><TextInput accessibilityLabel="Email address" value={email} onChangeText={setEmail} editable={!busy} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" placeholder="you@example.com" placeholderTextColor={C.placeholder} maxLength={254} style={s.input}/></View>:<>
+ <Text accessibilityLiveRegion="polite" style={[s.body,{marginBottom:18}]}>We sent a sign-in code to {sentTo}. Check your inbox and spam folder.</Text>
+ {!verified&&<View style={{gap:8,marginBottom:17}}><Text style={s.label}>Email code</Text><TextInput accessibilityLabel="Email code" value={otp} onChangeText={setOtp} editable={!busy} keyboardType="number-pad" autoComplete="one-time-code" placeholder="Enter the code from your email" placeholderTextColor={C.placeholder} maxLength={10} style={s.input}/></View>}
+ </>}
+ {!!error&&<Text accessibilityRole="alert" style={{color:C.red,marginBottom:18}}>{error}</Text>}
+ <Button label={busy?'Please wait…':verified?'Retry loading account':sentTo?'Verify & continue':'Send email code'} disabled={busy} onPress={()=>void submit()}/>
+ {!!sentTo&&!verified&&<View style={{marginTop:16,gap:12}}><Button label={remaining?'Resend code in '+remaining+'s':'Resend code'} secondary disabled={busy||remaining>0} onPress={()=>void submit(true)}/><Pressable accessibilityRole="button" disabled={busy} onPress={()=>{setSentTo('');setOtp('');setError('')}} style={{padding:12,alignItems:'center'}}><Text style={s.link}>Use a different email</Text></Pressable></View>}
+ <Text style={[s.tiny,{marginTop:20}]}>Adults manage the account. Add a child’s information only if you are their parent or authorised guardian.</Text>
+ </Sheet>
+}

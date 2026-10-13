@@ -7,8 +7,19 @@ export function profileLimit(profiles, type, premium) {
   return null;
 }
 export function hasUrgentWords(text) {
-  // Negation is intentionally not treated as reassurance. Ask explicitly in live flow.
-  return /can't breathe|cannot breathe|struggling to breathe|severe.*breath|chest pain|seene? me(?:in)? dard|saans nahi|saans nahin|unconscious|behosh|not waking|blue lips|seizure|stroke|one.side.*weak|suicid|self.harm|bleeding.*(?:stop|heav)|worst headache|sudden.*(?:weakness|headache)|खून.*नहीं|बेहोश|सांस नहीं/i.test(text);
+  // Generic chest pain or a named disease needs contextual model assessment.
+  // This backstop is deliberately limited; it is not the complete safety screen.
+  const symptoms=positiveSymptomText(text)
+    .replace(/\b(?:not|never)\s+(?:unconscious|having a seizure|struggling to breathe)\b/gi,' ')
+    .replace(/\bbehosh\s+(?:nahi|nahin)(?:\s+(?:hai|hoon))?\b/gi,' ')
+    .replace(/बेहोश\s+नहीं/g,' ');
+  return /can't breathe|cannot breathe|struggling to breathe|severe\s+(?:trouble|difficulty)\s+breathing|severe\s+(?:shortness of breath|breathlessness)|persistent chest pain|chest pain[^.!?]*(?:sweat|breathless|spreading)|saans nahi|saans nahin|unconscious|behosh|not waking|blue lips|having a seizure|one.side[^.!?]*weak|suicid|self.harm|bleeding[^.!?]*(?:won't stop|will not stop|doesn't stop|cannot stop|can't stop)|(?:heavy|uncontrollable)\s+bleeding|worst headache|sudden[^.!?]*weakness|sudden\s+(?:severe|worst)\s+headache|खून[^.!?]*(?:रुक नहीं|नहीं रुक)|बेहोश|सांस नहीं/i.test(symptoms);
+}
+export function positiveSymptomText(text) {
+  // Only remove explicit, local denials. Never interpret “not sure”, “no longer”,
+  // resolved neurological symptoms or an unknown history as absence.
+  return text.replace(/\b(?:no|without|deny|denies|denying)\s+(?:any\s+)?(?:chest pain|shortness of breath|breathing difficulty|fever|cough|headache|vomiting|bleeding|weakness|seizures?)(?=\s*(?:[,.!?;]|$|but\b|and\b|or\b))/gi,' ')
+    .replace(/\b(?:chest pain|fever|cough|headache|vomiting)\s+(?:is\s+)?(?:absent|nahi hai|nahin hai)\b/gi,' ');
 }
 export function ancestorFlags(profileId, profiles) {
   const visited = new Set([profileId]); const found = [];

@@ -18,6 +18,7 @@ export async function request(path:string,body?:unknown,method='POST') {
 }
 export async function loadAccount():Promise<AppData>{return {...emptyData,...await (await request('/account',undefined,'GET')).json()};}
 export async function saveProfile(p:Profile){if(isLive)await request('/profiles',p);}
+export async function removeProfile(id:string){if(isLive)await request(`/profiles/${encodeURIComponent(id)}`,undefined,'DELETE');}
 export async function saveRecord(r:RecordItem){if(isLive)await request('/records',r);}
 export async function uploadFile(profileId:string,uri:string,name:string,mime:string){
   if(!supabase) return undefined;

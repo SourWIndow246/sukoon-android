@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: sukoon-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --prefix server --omit=dev --ignore-scripts
+    startCommand: node server/index.mjs
+    healthCheckPath: /health
+    autoDeployTrigger: 'off'
+    envVars:
+      - key: NODE_VERSION
+        value: '24.19.0'
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY_HOPS
+        value: '1'
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: ALLOWED_ORIGIN
+        value: http://localhost:8081
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

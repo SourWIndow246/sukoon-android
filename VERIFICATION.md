@@ -1,4 +1,31 @@
+## Mobile fixes · 13 October 2026 · 1.0.2 / code 3
+
+- Built releases/Sukoon-1.0.2-preview.apk (30,780,184 bytes). Gradle assembleRelease passed in 5m 27s. APK signature, embedded bundle, native speech modules, microphone permission and absence of configured server keys passed verification. SHA-256: 0808fb91a9a86175d9f0f357892b90c5b5d47411243ec2e1b97765f1f9449950. Logs: qa/android-build-latest.log, qa/apk-verification-latest.log, qa/mobile-fixes-tests.log.
+
+- Eight answered follow-ups precede a normal verdict. Early model-generated red output now requires explicit emergency evidence; the vague report "i have one of this problem" is covered by a regression test. Clear danger reports still bypass the interview.
+- Before completion, the chat header shows neutral answer progress instead of traffic lights.
+- Microphone control sits beside Send and opens a dedicated voice modal with listening, thinking, speaking, retry and stop states. Permission-dialog interruptions now wait for foreground before listening. Missing voice-list metadata can use the platform default for the requested language.
+- Long-press a family card to edit or remove. Removal needs a confirmation, deletes that member's local chats/records and clears parent links. Live removal is an owner-scoped database transaction; private file cleanup uses a durable retry queue.
+- New migration: supabase/migrations/002_remove_family_member.sql. Apply it before deploying the updated server. No remote migration or live database deletion has been run here.
+- TypeScript passed; 38 automated tests passed across the suite, including six mobile regression tests.
+- This APK is still a local demo because live public/backend configuration is incomplete. The Gemini key stays on the server.
+- Physical-phone microphone recording/playback and native popup gestures remain unverified. Tests cover sequencing, cancellation and permission restoration; they do not establish hardware compatibility or clinical accuracy.
+- Emergency backstop references checked: https://www.nhs.uk/symptoms/shortness-of-breath/ and https://www.nth.nhs.uk/patients/emergency/. Keyword matching is incomplete and is not a validated clinical rule system.
+
 # Sukoon Android preview verification
+
+## Latest phone preview — 13 October 2026
+
+- Install file: `releases/Sukoon-1.0.1-preview.apk` (also copied to `Sukoon-preview.apk`), 30,773,200 bytes. Version 1.0.1 / code 2; Android 7+; arm64-v8a.
+- Native release build succeeded: 518 tasks, 127 executed. Log: `qa/android-build-latest.log`.
+- Signature, embedded Hermes bundle, native speech recognition and speech playback classes, microphone permission, and absence of bundled `.env` files verified. Log: `qa/apk-verification-latest.log`.
+- Bundled app code checked against the configured server secret values: none found. The Gemini key remains server-only.
+- SHA-256: `a985d5004c5b9cc57508caf363df8558f1f7bfb7a6a2f35f884a2a8c6b3d753c`.
+- Includes automatic typed-language selection, Hindi/Hinglish questions and summaries, plain-language instructions, and the voice chat toggle. 32 automated tests and TypeScript checks passed before packaging.
+- This APK runs the labelled local demo because public Supabase settings are not configured. Gemini provider/fallback code runs on the backend and is not bundled into the phone app. A hosted backend and Supabase configuration are needed for real AI replies.
+- Microphone recognition, speaker playback and installation still need testing on the user's physical phone. Development signing is used for this preview.
+
+## Previous preview
 
 Date: 11 October 2026.
 
