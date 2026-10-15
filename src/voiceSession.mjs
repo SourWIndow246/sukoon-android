@@ -1,3 +1,4 @@
+import { detectLanguage } from './language.mjs';
 export function spokenReply(reply) {
   const t=reply.triage_suggestion;
   return t?[reply.message,t.title,t.summary,...t.steps,...t.watchFor,t.followup].filter((v,i,a)=>v&&a.indexOf(v)===i).join('\n'):reply.message;
@@ -15,7 +16,7 @@ export async function runVoiceSession({signal,listen,send,speak,getLanguage,onSt
     if(signal.aborted)return;
     if(!reply)throw new Error('reply-failed');
     onState('speaking');
-    await speak(spokenReply(reply),getLanguage(),signal);
+    await speak(spokenReply(reply),detectLanguage(reply.message,getLanguage()),signal);
     if(signal.aborted||reply.triage_suggestion)return;
   }
 }

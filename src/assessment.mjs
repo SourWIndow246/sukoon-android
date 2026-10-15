@@ -1,5 +1,4 @@
-// Minimum history domains, not a validated diagnostic questionnaire.
-export const MIN_FOLLOWUPS = 8;
+// Localized sample questions for offline demo only; live interviews are adaptive.
 export const questions = [
   {message:"Are there any emergency warning signs now: great trouble breathing, chest pain that won't go away, fainting, sudden weakness on one side, or bleeding that won't stop?",options:['None of these','Yes · one of these','Not sure']},
   {message:'When did this start? Did it come on all at once or slowly?',options:[]},
@@ -47,4 +46,11 @@ export function answeredFollowups(messages) {
 export function dangerAnswer(messages) {
   const last=messages.at(-1);
   return last?.role==='user' && Object.values(questionBanks).some(bank=>messages.at(-2)?.content===bank[0].message && [bank[0].options[1].toLowerCase(), 'yes', 'haan', 'हाँ'].includes(last.content.trim().toLowerCase()));
+}
+
+// A vague opening is not evidence for any triage colour.
+export function clarifyOpening(messages,language='English') {
+ const users=messages.filter(m=>m.role==='user');
+ if(users.length!==1||!/^\s*(?:i have (?:one of (?:this|these) problems?|a problem)|help|hello|hi)[.!?]*\s*$/i.test(users[0].content))return null;
+ return {message:language==='Hindi'?'आपको क्या परेशानी हो रही है?':language==='Hinglish'?'Aapko kya pareshani ho rahi hai?':'What problem are you having?',options:[]};
 }

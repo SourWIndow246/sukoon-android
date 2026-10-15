@@ -4,7 +4,7 @@ export const lightPalette = {
  green:'#0F6E56', primary:'#0F6E56', onPrimary:'#FFFFFF', soft:'#EAF2E6',
  border:'#E0E6DE', borderStrong:'#A6BE9A', amber:'#8B580D', yellow:'#F5E8C9',
  red:'#A32D2D', danger:'#A32D2D', errorBg:'#FAEDEA',
- input:'#FAFBF8', placeholder:'#728079', subtle:'#F5F7F2', welcome:'#EBF1E3',
+ input:'#FAFBF8', placeholder:'#64736A', subtle:'#F5F7F2', welcome:'#EBF1E3',
  hover:'#EFF4EA', hero:'#1E604B', heroText:'#FFFFFF', heroMuted:'#D6E6D7',
  heroButton:'#E8F0DD', heroButtonText:'#0F6E56', inactive:'#DCE1DB',
  success:'#0F6E56', warning:'#BA7517', urgent:'#A32D2D',

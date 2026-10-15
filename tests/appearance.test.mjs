@@ -17,7 +17,7 @@ const luminance=hex=>{const a=hex.slice(1).match(/../g).map(v=>parseInt(v,16)/25
 const contrast=(a,b)=>{const [l,h]=[luminance(a),luminance(b)].sort((a,b)=>a-b);return(h+.05)/(l+.05);};
 for(const [name,p]of [['light',lightPalette],['dark',darkPalette]]){
  test(`${name} theme maintains readable body, form, warning, and button text`,()=>{
-  for(const [text,surface]of [['ink','bg'],['ink','white'],['ink','input'],['muted','bg'],['muted','white'],['muted','soft'],['muted','yellow'],['green','soft'],['red','errorBg'],['amber','yellow'],['onPrimary','primary'],['onPrimary','danger'],['heroButtonText','heroButton'],['toastText','toast']]){
+  for(const [text,surface]of [['placeholder','input'],['placeholder','white'],['ink','bg'],['ink','white'],['ink','input'],['muted','bg'],['muted','white'],['muted','soft'],['muted','yellow'],['green','soft'],['red','errorBg'],['amber','yellow'],['onPrimary','primary'],['onPrimary','danger'],['heroButtonText','heroButton'],['toastText','toast']]){
    assert.ok(contrast(p[text],p[surface])>=4.5,`${text} on ${surface} in ${name}`);
   }
  });

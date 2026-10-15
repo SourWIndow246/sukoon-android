@@ -1,11 +1,12 @@
 import type { Chat, Profile, Reply, Triage } from './types';
 import { hasUrgentWords } from './policy.mjs';
-import { questions, nextQuestion, dangerAnswer } from './assessment.mjs';
+import { questions, nextQuestion, dangerAnswer, clarifyOpening } from './assessment.mjs';
 import { conversationLanguage, pick } from './language.mjs';
 import { emergencyFor, sampleResult } from './careCopy.mjs';
 export function demoReply(chat: Chat, profile: Profile, fallback: string): Reply {
   const answers=chat.messages.filter(m=>m.role==='user'); const last=answers.at(-1)?.content??'';
   const language=conversationLanguage(chat.messages,fallback);
+  const clarification=clarifyOpening(chat.messages,language);if(clarification)return clarification;
   if(hasUrgentWords(last)||dangerAnswer(chat.messages)) {
     const triage=emergencyFor(language) as Triage;
     return {message:triage.summary,options:[],triage_suggestion:triage};

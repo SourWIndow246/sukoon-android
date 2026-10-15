@@ -7,19 +7,15 @@ import { demoReply } from '../src/demo.ts';
 import { waitForVoiceForeground } from '../src/voiceLifecycle.mjs';
 import { cleanRemovedFiles } from '../server/profile-removal.mjs';
 
-test('reported vague phrase cannot produce an early verdict in demo or provider output',()=>{
+test('reported vague opening asks for clarification without an AI call',async()=>{
+ const {careReply}=await import('../server/care-provider.mjs');
  const messages=[{role:'user',content:'i have one of this problem'}];
- const p={conditions:[],allergies:[]};
- const first=demoReply({messages},p,'English');assert.equal(first.triage_suggestion,undefined);
- for(const colour of ['green','yellow','red'])for(let count=1;count<=8;count++){
-  assert.equal(safeReply({message:'Done',options:[],triage_suggestion:{...emergencyTriage,colour}},count).triage_suggestion,undefined);
- }
- for(let i=0;i<8;i++){
-  const question=demoReply({messages},p,'English');assert.equal(question.triage_suggestion,undefined);
-  messages.push({role:'assistant',content:question.message},{role:'user',content:i===0?'None of these':'No other problem'});
- }
- assert.ok(demoReply({messages},p,'English').triage_suggestion);
+ const demo=demoReply({messages},{conditions:[],allergies:[]},'English');
+ assert.equal(demo.triage_suggestion,undefined);assert.match(demo.message,/What problem/);
+ const live=await careReply({messages,context:{language:'English'}},{env:{},fetchImpl:()=>{throw Error('must not call AI')}});
+ assert.deepEqual(live,demo);
 });
+
 test('clear danger remains urgent; resolved bleeding and vague symptoms do not auto-trigger',()=>{
  for(const phrase of ['i have one of this problem','bleeding stopped','sudden mild headache','behosh nahi hai','I am not unconscious','बेहोश नहीं हैं'])assert.equal(hasUrgentWords(phrase),false,phrase);
  for(const phrase of ["bleeding won't stop",'heavy bleeding','sudden severe headache','I cannot breathe','behosh hai','सांस नहीं आ रही'])assert.equal(hasUrgentWords(phrase),true,phrase);

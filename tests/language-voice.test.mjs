@@ -17,10 +17,10 @@ test('message language overrides preferences and follows switches; numbers retai
   assert.equal(detectLanguage('2 din se'),'Hinglish');
   for(const language of ['Hindi','Hinglish'])for(const q of questionBanks[language])for(const option of q.options)assert.equal(detectLanguage(option,language),language,option);
 });
-test('all eight questions and summaries are localized in demo and server fallback',()=>{
+test('sample questions and summaries are localized; server preserves model questions',()=>{
   for(const [language,complaint] of [['Hindi','मुझे सिर में दर्द है'],['Hinglish','mere sar mein dard hai']]) {
     for(let count=1;count<=8;count++) {
-      assert.deepEqual(safeReply({message:'English model reply',options:[]},count,language),nextQuestion(count,language));
+      assert.deepEqual(safeReply(nextQuestion(count,language)),nextQuestion(count,language));
       const reply=demoReply({messages:[user(complaint),...Array.from({length:count-1},()=>user('2'))]},{conditions:[],type:'Adult'},'English');
       assert.deepEqual(reply,nextQuestion(count,language));
     }

@@ -10,6 +10,17 @@ const tokenStorage={ getItem:(k:string)=>SecureStore.getItemAsync(k),setItem:(k:
 export const supabase=url&&key?createClient(url,key,{auth:{storage:Platform.OS==='web'?AsyncStorage:tokenStorage,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}}):null;
 export const isLive=!!supabase;
 const api=process.env.EXPO_PUBLIC_API_URL??'http://localhost:3001';
+let backendWake:Promise<void>|undefined;
+let lastWake=0;
+// One request when entering care chat overlaps a sleeping server's startup with
+// reading/recording. No timer or background keep-alive traffic.
+export function warmCareBackend() {
+  if(!isLive||backendWake||Date.now()-lastWake<60000)return;
+  lastWake=Date.now();
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),65000);
+  backendWake=fetch(`${api}/health`,{signal:controller.signal}).then(()=>{}).catch(()=>{}).finally(()=>{clearTimeout(timer);backendWake=undefined;});
+}
 export async function request(path:string,body?:unknown,method='POST') {
   const session=await supabase?.auth.getSession(); const token=session?.data.session?.access_token;
   if(!token)throw new Error('Please sign in to continue.');

@@ -16,7 +16,7 @@ test('explicit provider selection never falls back and status never exposes keys
   assert.throws(()=>aiConfig({...env,GEMINI_MODEL:'../secret?key=x'}));
   assert.equal(JSON.stringify(aiStatus(env)).includes('test-secret'),false);
 });
-test('Gemini receives private header key, schema, history and language rules; early green is gated',async()=>{
+test('Gemini receives private header key, schema, history and language rules; tailored questions are preserved',async()=>{
   let calls=0;
   const result=await careReply({messages,context},{env,fetchImpl:async(url,request)=>{
     calls++;assert.match(url,/generativelanguage.googleapis.com.*generateContent$/);
@@ -27,13 +27,13 @@ test('Gemini receives private header key, schema, history and language rules; ea
     assert.match(body.systemInstruction.parts[0].text,/Roman-script Hinglish/);
     assert.equal(body.contents.at(-1).role,'user');assert.match(body.contents.at(-1).parts[0].text,/सिर/);
     assert.ok(!JSON.stringify(body).includes('test-secret'));
-    return jsonResponse(candidate({message:'Done',options:[],triage_suggestion:{...emergencyTriage,colour:'green'}}));
+    return jsonResponse(candidate({message:'दर्द अचानक शुरू हुआ या धीरे-धीरे?',options:[]}));
   }});
-  assert.equal(calls,1);assert.deepEqual(result,questionBanks.Hindi[0]);
+  assert.equal(calls,1);assert.equal(result.message,'दर्द अचानक शुरू हुआ या धीरे-धीरे?');
 });
-test('Gemini preserves complete verdict after eight answers and emergency bypass',async()=>{
+test('Gemini preserves complete verdict without a minimum count, including model-detected emergencies',async()=>{
   const full=[...messages];for(let i=0;i<8;i++)full.push({role:'assistant',content:'Question'},{role:'user',content:'Answer'});
-  for(const [transcript,colour] of [[full,'yellow'],[[{role:'user',content:'I cannot breathe',at:new Date().toISOString()}],'red']]) {
+  for(const [transcript,colour] of [[messages,'yellow'],[[{role:'user',content:'I was just in a serious road crash',at:new Date().toISOString()}],'red']]) {
     const result=await careReply({messages:transcript,context},{env,fetchImpl:async()=>jsonResponse(candidate({message:'Help',options:[],triage_suggestion:{...emergencyTriage,colour}}))});
     assert.equal(result.triage_suggestion.colour,colour);
   }
@@ -49,10 +49,10 @@ test('blocked, truncated, invalid and excessive Gemini responses never become ve
   await assert.rejects(careReply({messages,context},{env,fetchImpl:async()=>({ok:false,json:async()=>({error:'test-secret'})})}),error=>!error.message.includes('test-secret'));
   await assert.rejects(careReply({messages,context},{env:{AI_PROVIDER:'gemini'},fetchImpl:async()=>{throw new Error('must not fetch');}}),/key is missing/);
 });
-test('Anthropic remains available and uses the same localized guard',async()=>{
+test('Anthropic remains available and preserves tailored questions',async()=>{
   const result=await careReply({messages,context},{env:{AI_PROVIDER:'anthropic',ANTHROPIC_API_KEY:'test-only'},fetchImpl:async(url,request)=>{
     assert.equal(url,'https://api.anthropic.com/v1/messages');assert.equal(request.headers['x-api-key'],'test-only');
     return jsonResponse({stop_reason:'tool_use',content:[{type:'tool_use',name:'care_turn',input:{message:'When?',options:[]}}]});
   }});
-  assert.deepEqual(result,questionBanks.Hindi[0]);
+  assert.equal(result.message,'When?');
 });

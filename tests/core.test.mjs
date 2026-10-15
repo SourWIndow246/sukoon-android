@@ -8,7 +8,7 @@ import { questions, answeredFollowups } from '../src/assessment.mjs';
 import { searchClinicalReferences, referenceLinks } from '../server/clinical-search.mjs';
 const p={id:'person',name:'Test',age:30,type:'Adult',conditions:[],allergies:[]};
 const chat=answers=>({id:'test',profileId:p.id,messages:answers.map(content=>({role:'user',content}))});
-test('the live model contract loads and requests structured triage',()=>{assert.equal(CARE_TOOL.name,'care_turn');assert.match(SYSTEM_PROMPT,/AT LEAST EIGHT/);assert.deepEqual(CARE_TOOL.input_schema.properties.triage_suggestion.properties.colour.enum,['green','yellow','red']);});
+test('the live model contract loads and requests structured triage',()=>{assert.equal(CARE_TOOL.name,'care_turn');assert.match(SYSTEM_PROMPT,/NO minimum or fixed number/);assert.deepEqual(CARE_TOOL.input_schema.properties.triage_suggestion.properties.colour.enum,['green','yellow','red']);});
 test('free account enforces five profiles and separate adult/child quotas',()=>{
  const profiles=[{type:'Adult'},{type:'Adult'},{type:'Child'},{type:'Child'}];
  assert.match(profileLimit(profiles,'Adult',false),/2 adult/);
@@ -31,9 +31,9 @@ test('demo uncertainty leads to yellow and explicit danger response to red',()=>
  assert.equal(demoReply(chat(answers),p,'English').triage_suggestion.colour,'yellow');
  assert.equal(demoReply({messages:[{role:'user',content:'Headache'},{role:'assistant',content:questions[0].message},{role:'user',content:'Yes · one of these'}]},p,'Hinglish').triage_suggestion.colour,'red');
 });
-test('live output gates early verdicts unless emergency is confirmed',()=>{
+test('live output validates early verdicts and removes questions from emergency advice',()=>{
  const early=safeReply({message:'Done',options:[],triage_suggestion:{...emergencyTriage,colour:'green'}},1);
- assert.equal(early.triage_suggestion,undefined);assert.ok(early.options.length);
+ assert.equal(early.triage_suggestion.colour,'green');
  const red=safeReply({message:'Get help',options:['unwanted question'],triage_suggestion:emergencyTriage},1,'English',true);
  assert.equal(red.triage_suggestion.colour,'red');assert.deepEqual(red.options,[]);
  assert.throws(()=>safeReply({message:'',options:[],triage_suggestion:{colour:'green'}},9));
@@ -48,10 +48,10 @@ test('malformed ancestry cannot loop forever or count the patient as their own a
  const f=[{id:'a',name:'A',hereditary:['X'],parentIds:['b']},{id:'b',name:'B',hereditary:['Y'],parentIds:['a']}];
  assert.deepEqual(ancestorFlags('a',f),[{condition:'Y',relative:'B'}]);
 });
-test('eight follow-up answers are required for both non-emergency colours',()=>{
+test('valid care recommendations are not gated by a fixed question count',()=>{
  for(const colour of ['green','yellow']) {
   const reply={message:'Assessment',options:[],triage_suggestion:{...emergencyTriage,colour}};
-  for(let turns=1;turns<=8;turns++)assert.deepEqual(safeReply(reply,turns),questions[turns-1]);
+  for(let turns=1;turns<=8;turns++)assert.equal(safeReply(reply,turns).triage_suggestion.colour,colour);
   assert.equal(safeReply(reply,9).triage_suggestion.colour,colour);
  }
  assert.equal(answeredFollowups([{role:'user'},{role:'user'}]),0);

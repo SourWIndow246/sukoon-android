@@ -9,6 +9,7 @@
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" tools:node="remove"/>
   <queries>
+    <package android:name="com.google.android.as"/>
     <package android:name="com.google.android.googlequicksearchbox"/>
     <intent><action android:name="android.speech.RecognitionService"/></intent>
     <intent><action android:name="android.intent.action.TTS_SERVICE"/></intent>
