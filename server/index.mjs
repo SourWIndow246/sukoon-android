@@ -1,3 +1,4 @@
+import { recallHistory, currentWeather } from './care-memory.mjs';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -60,7 +61,7 @@ app.post('/chat',rateLimit({windowMs:60000,limit:15}),async(req,res,next)=>{
  let sessionId;let lockToken;let streamed=false;
  const emit=event=>{if(!res.destroyed)res.write(`data: ${JSON.stringify(event)}\n\n`)};
  try{
- const body=z.object({sessionId:z.uuid(),profileId:z.uuid(),text:z.string().trim().min(1).max(4000),weather:z.object({label:z.string().max(100),temperature:z.number().optional(),observedAt:z.iso.datetime().optional(),latitude:z.number().optional(),longitude:z.number().optional()}).nullable().optional()}).parse(req.body);sessionId=body.sessionId;
+ const body=z.object({sessionId:z.uuid(),profileId:z.uuid(),text:z.string().trim().max(4000).default(''),opening:z.boolean().default(false),weather:z.object({label:z.string().max(100),temperature:z.number().optional(),humidity:z.number().min(0).max(100).optional(),precipitation:z.number().min(0).optional(),observedAt:z.iso.datetime().optional(),latitude:z.number().optional(),longitude:z.number().optional()}).nullable().optional()}).refine(b=>b.opening||b.text.length>0,'Please enter a message').parse(req.body);sessionId=body.sessionId;
  const preferences=await pref(req.owner);if(!preferences?.consent_at)throw fail(403,'Please accept the care-chat notice first.');
  const p=(await own('profiles',body.profileId,req.owner)).data;
  let row=await own('care_sessions',sessionId,req.owner,false);if(row&&row.profile_id!==p.id)throw fail(400,'A chat cannot change profiles.');if(row?.data.endedAt)throw fail(409,'This assessment is complete. Start a new chat.');
@@ -68,7 +69,8 @@ app.post('/chat',rateLimit({windowMs:60000,limit:15}),async(req,res,next)=>{
  const {data:acquired,error:lockError}=await db.rpc('acquire_care_turn',{p_session:sessionId,p_owner:req.owner});if(lockError||!acquired)throw fail(409,'Another message is being processed. Please wait.');lockToken=acquired;
  // Re-read after lock acquisition: the server, not the device, owns the transcript.
  row=await own('care_sessions',sessionId,req.owner);if(row.data.endedAt)throw fail(409,'This assessment is complete. Start a new chat.');
- const messages=[...row.data.messages,{role:'user',content:body.text,at:new Date().toISOString()}];let reply;
+ if(body.opening&&row.data.messages.length){res.status(200).set({'Content-Type':'text/event-stream','Cache-Control':'no-cache'});streamed=true;emit({type:'result',reply:{message:row.data.messages[0].content,options:[]}});res.end();return;}
+ const messages=body.opening?row.data.messages:[...row.data.messages,{role:'user',content:body.text,at:new Date().toISOString()}];let reply;
  const replyLanguage=conversationLanguage(messages,preferences.language);
  res.status(200).set({'Content-Type':'text/event-stream','Cache-Control':'no-cache, no-transform','X-Accel-Buffering':'no'});res.flushHeaders();streamed=true;
  emit({type:'status',text:'Reviewing the health background…'});
@@ -76,11 +78,11 @@ app.post('/chat',rateLimit({windowMs:60000,limit:15}),async(req,res,next)=>{
  else {
 
  const [family,records,history]=await Promise.all([rows('profiles',req.owner),rows('health_records',req.owner),rows('care_sessions',req.owner)]);
- const recent=history.filter(x=>x.profile_id===p.id&&x.id!==sessionId).slice(-20).map(x=>({startedAt:x.data.startedAt,endedAt:x.data.endedAt,triage_suggestion:x.data.triage_suggestion,complaint:x.data.messages.find(m=>m.role==='user')?.content}));
+ const memory=recallHistory(history,p.id,sessionId,messages);
  const relevantRecords=records.filter(x=>x.profile_id===p.id).map(x=>x.data).slice(-40);
- const weather=body.weather?.observedAt&&Math.abs(Date.now()-Date.parse(body.weather.observedAt))<2*3600000?body.weather:null;
+ const weather=currentWeather(body.weather);
  const clinicalReferences=searchClinicalReferences(messages);
- const context={clinicalReferences,answeredFollowups:answeredFollowups(messages),currentTime:new Date().toISOString(),currentConversationStartedAt:row.data.startedAt,profile:p,language:replyLanguage,familyHistory:ancestorFlags(p.id,family.map(x=>x.data)),records:relevantRecords,previousEncounters:recent,weather,historyWindow:{encounters:20,records:40,note:'Older records remain stored, but may not be in this context. Ask if important history is missing.'}};
+ const context={clinicalReferences,answeredFollowups:answeredFollowups(messages),currentTime:new Date().toISOString(),currentConversationStartedAt:row.data.startedAt,profile:p,language:body.opening?conversationLanguage(memory.encounters.at(-1)?.messages??[],replyLanguage):replyLanguage,familyHistory:ancestorFlags(p.id,family.map(x=>x.data)),records:relevantRecords,memory,openingCheckIn:body.opening,weather,historyWindow:{encounters:memory.encounters.length,records:40,note:'Older records remain stored, but may not be in this context. Ask if important history is missing.'}};
  reply=await careReply({messages,context});
  if(reply.triage_suggestion)reply.triage_suggestion.references=referenceLinks(clinicalReferences);
  }

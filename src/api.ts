@@ -38,9 +38,9 @@ export async function uploadFile(profileId:string,uri:string,name:string,mime:st
   const path=`${user.id}/${profileId}/${Date.now()}-${name.replace(/[^a-zA-Z0-9.-]/g,'_')}`;
   const {error}=await supabase.storage.from('medical-records').upload(path,bytes,{contentType:mime,upsert:false});if(error)throw error;return path;
 }
-export async function liveReply(chat:Chat,text:string,weather:unknown,onStatus:(s:string)=>void):Promise<Reply>{
+export async function liveReply(chat:Chat,text:string,weather:unknown,onStatus:(s:string)=>void,opening=false):Promise<Reply>{
   // Structured events only: an incomplete model answer can never show a green light.
-  const r=await request('/chat',{sessionId:chat.id,profileId:chat.profileId,text,weather});
+  const r=await request('/chat',{sessionId:chat.id,profileId:chat.profileId,text,weather,opening});
   const parse=(s:string)=>{let result:Reply|undefined; for(const line of s.split('\n')) if(line.startsWith('data: ')){const event=JSON.parse(line.slice(6));if(event.type==='status')onStatus(event.text);if(event.type==='result')result=event.reply;if(event.type==='error')throw new Error(event.message);}return result;};
   if(!r.body?.getReader){const reply=parse(await r.text());if(!reply)throw new Error('No complete assessment received. Try again.');return reply;}
   const reader=r.body.getReader();const decoder=new TextDecoder();let buffer='';let final:Reply|undefined;
