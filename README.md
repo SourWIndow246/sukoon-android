@@ -4,7 +4,9 @@ Sukoon is a React Native / Expo Android app, not a WebView wrapper. Native scree
 
 ## Install the Android preview
 
-Download [Sukoon-preview.apk from the Android preview release](https://github.com/SourWIndow246/sukoon-android/releases/tag/v1.0.0-preview.1). Access requires permission to this private repository.
+Download [Sukoon-1.0.8.apk from the latest Android preview release](https://github.com/SourWIndow246/sukoon-android/releases/tag/v1.0.8-preview). Access requires permission to this private repository.
+
+The latest preview is **1.0.8 / Android version code 9**. It includes adaptive follow-up questions, dated conversation recall for each family profile, personalised returning check-ins, optional fresh weather context, and care-urgency results without disease lists. See [release notes](releases/Sukoon-1.0.8-notes.md), [conversation recall](docs/conversation-memory.md), and [verification](VERIFICATION.md). The distributed APK connects to the configured hosted backend and Supabase email login; locally built apps require your own environment settings.
 
 The verified preview is available at `releases/Sukoon-preview.apk` (about 31 MB), for Android phones with an **arm64-v8a** processor, Android 7 or newer. Transfer it to the phone, open it, and approve installation from your chosen file manager. This preview is signed with the standard development key and is **not a Play Store release**. No development server is needed for the APK.
 

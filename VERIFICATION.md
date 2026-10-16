@@ -14,7 +14,17 @@
 
 # Sukoon Android preview verification
 
-## Latest phone preview — 13 October 2026
+## Latest phone preview — 1.0.8, 15 October 2026
+
+- Install file: `releases/Sukoon-1.0.8.apk`, also available as `Sukoon-preview.apk`; 30,794,692 bytes; version 1.0.8 / code 9; Android 7+; arm64-v8a.
+- Native Gradle release build succeeded in 5m 31s: 518 tasks, 43 executed. Log: `qa/apk-1.0.8-build.log`.
+- APK signature, native speech modules, microphone permission, embedded Hermes runtime, configured public API/Supabase settings, and absence of server secrets/environment files verified. Log: `qa/apk-1.0.8-verification.log`.
+- SHA-256: `671582218575975c59e619f7a8f1045bf5d87c2eb47b038debbecb0430a40d94`.
+- TypeScript and 52 automated tests passed. Synthetic Gemini checks exercised next-day fever recall, already-answered facts, a resolved symptom followed by a new complaint, and heat context. Logs: `qa/continuity-tests.log` and `qa/continuity-model-check.log`.
+- The hosted backend deployed source commit `c12a15c`; `/health` returned 200 with Gemini/storage configured, and `/account` returned 401 without authentication.
+- These are engineering checks. Authenticated hosted chat, physical-phone keyboard/voice behaviour and clinical accuracy were not independently validated in this release. Recall is bounded to selected recent/relevant encounters; see `docs/conversation-memory.md`.
+
+## Previous phone preview — 13 October 2026
 
 - Install file: `releases/Sukoon-1.0.1-preview.apk` (also copied to `Sukoon-preview.apk`), 30,773,200 bytes. Version 1.0.1 / code 2; Android 7+; arm64-v8a.
 - Native release build succeeded: 518 tasks, 127 executed. Log: `qa/android-build-latest.log`.
